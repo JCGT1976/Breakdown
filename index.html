@@ -574,9 +574,17 @@ sb.auth.onAuthStateChange(function(event) {
     var res = await sb.auth.getSession();
     var session = res.data && res.data.session;
     if (session && session.user) {
-      var r = await sb.from('usuarios').select('*').eq('auth_id', session.user.id).single();
-      if (!r.error && r.data && r.data.activo !== false && !r.data.debe_cambiar) {
-        var u = r.data;
+      var u = null;
+      // 1. Buscar por auth_id
+      var r1 = await sb.from('usuarios').select('*').eq('auth_id', session.user.id).maybeSingle();
+      if (!r1.error && r1.data) { u = r1.data; }
+      // 2. Fallback por username (email prefix)
+      if (!u) {
+        var uname = (session.user.email || '').split('@')[0];
+        var r2 = await sb.from('usuarios').select('*').eq('username', uname).maybeSingle();
+        if (!r2.error && r2.data) { u = r2.data; }
+      }
+      if (u && u.activo !== false) {
         var mods = Array.isArray(u.modulos) ? u.modulos : [];
         if (u.rol === 'admin_master' || mods.includes(MODULO_ID)) {
           __user = u;
@@ -584,9 +592,8 @@ sb.auth.onAuthStateChange(function(event) {
           return;
         }
       }
-      try { await sb.auth.signOut(); } catch(e2) {}
     }
-  } catch(e) { console.error('bootstrap:', e); }
+  } catch(e) { console.error('bkd bootstrap:', e); }
   window.location.replace(PORTAL_URL);
 })();
 
