@@ -550,8 +550,9 @@ tr:hover td{background:#fafbff}
 <div id="toast"></div>
 
 <script>
+var APP_VERSION = '2026.08.25.2';
 var SUPA_URL = 'https://nzrzrbatcmzcmrmyrama.supabase.co';
-var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56cnpyYmF0Y216Y21ybXlyYW1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMzYyMjEsImV4cCI6MjA5NzcxMjIyMX0.BlSTgF9gi4zMlQwPMzhzTiju-OJys4AD5Nqmf3yJX18';
+var SUPA_KEY = 'sb_publishable_JMa-_sAXxw3LQrlqR7p7ww_RqLhY89X';
 var MODULO_ID = 'breakdown';
 
 var EMPRESAS = {1:'Ariitranst',2:'Autobot',3:'Boughts',4:'Comercial',5:'Internacional',6:'Beyondmaq'};
@@ -578,9 +579,16 @@ window.addEventListener('DOMContentLoaded', function() {
 
 // ── AUTH ──────────────────────────────────────────
 async function bootstrapAuth() {
-  var r = await sb.auth.getSession();
-  if (!r.data.session) { mostrarLogin(''); return; }
-  await cargarUsuario(r.data.session.user);
+  var timer = setTimeout(function() { mostrarLogin(''); }, 6000);
+  try {
+    var r = await sb.auth.getSession();
+    clearTimeout(timer);
+    if (!r.data.session) { mostrarLogin(''); return; }
+    await cargarUsuario(r.data.session.user);
+  } catch(e) {
+    clearTimeout(timer);
+    mostrarLogin('');
+  }
 }
 
 async function cargarUsuario(authUser) {
