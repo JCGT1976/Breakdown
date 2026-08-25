@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=5,user-scalable=yes">
+<meta name="theme-color" content="#185fa5">
+<title>SIF Breakdown — MI Global</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#f0f4f8;color:#1a2332;line-height:1.45;min-height:100vh}
+#loginPanel{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+.login-logo{width:62px;height:62px;border-radius:50%;background:#e6f1fb;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+.login-logo svg{width:32px;height:32px;stroke:#185fa5;fill:none;stroke-width:2}
+#loginPanel h1{font-size:20px;color:#0c3060;font-weight:700;margin-bottom:4px}
+#loginPanel p{font-size:13px;color:#777;margin-bottom:22px;max-width:300px}
+.lin{width:100%;max-width:280px;font-size:16px;padding:12px 14px;border:1.5px solid #cdd5dd;border-radius:11px;outline:none;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto}
+.lin:focus{border-color:#185fa5}
+.lbtn{width:100%;max-width:280px;font-size:15px;font-weight:700;padding:13px;border:none;border-radius:11px;background:#185fa5;color:#fff;cursor:pointer;display:block;margin:0 auto}
+.lbtn:active{transform:scale(.98)}
+#lerr{color:#a32d2d;font-size:12px;margin-top:10px;min-height:16px;font-weight:600}
+#appPanel{display:none;min-height:100vh;flex-direction:column}
+header{background:linear-gradient(135deg,#0c3060 0%,#185fa5 100%);color:#fff;padding:0 16px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.28)}
+.hdr-brand{font-size:15px;font-weight:700;letter-spacing:.3px}
+.hdr-brand span{font-size:11px;opacity:.7;display:block;font-weight:400;margin-top:1px}
+.hdr-user{display:flex;align-items:center;gap:8px;font-size:12px}
+.hdr-user strong{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btn-logout{background:rgba(255,255,255,.15);border:none;color:#fff;padding:5px 10px;border-radius:8px;font-size:11px;cursor:pointer}
+.btn-logout:hover{background:rgba(255,255,255,.25)}
+#tabBar{display:flex;background:#0c3060;border-bottom:2px solid #072348}
+.tab-btn{flex:1;padding:10px 4px;background:none;border:none;color:rgba(255,255,255,.55);font-size:11px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;border-bottom:3px solid transparent;transition:all .2s;letter-spacing:.4px}
+.tab-btn .ti{font-size:20px}
+.tab-btn.active{color:#fff;border-bottom-color:#4db8ff;background:rgba(255,255,255,.05)}
+.tab-btn:hover{color:#fff}
+.tab-panel{display:none;padding:12px;max-width:960px;margin:0 auto;width:100%}
+.tab-panel.active{display:block}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:16px}
+.kpi{background:#fff;border-radius:12px;padding:14px 12px;box-shadow:0 1px 4px rgba(0,0,0,.08);border-left:4px solid #185fa5}
+.kpi.green{border-left-color:#2e9e5b}.kpi.orange{border-left-color:#e07b00}.kpi.red{border-left-color:#c0392b}
+.kpi-val{font-size:20px;font-weight:700;color:#0c3060;line-height:1.2}
+.kpi-lbl{font-size:10px;color:#778;margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
+.card{background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:14px;overflow:hidden}
+.card-hdr{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #eef0f4}
+.card-hdr h3{font-size:14px;font-weight:700;color:#0c3060}
+.btn-new{background:#185fa5;color:#fff;border:none;padding:7px 14px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer}
+.btn-new:hover{background:#0c4a8a}
+.btn-sm{background:#f0f4f8;color:#185fa5;border:1px solid #d0d8e4;padding:4px 9px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer}
+.btn-sm:hover{background:#e0eaf6}
+.tbl-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{background:#f4f7fc;color:#445;font-weight:700;padding:8px 10px;text-align:left;white-space:nowrap}
+td{padding:8px 10px;border-bottom:1px solid #f0f2f5;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafbff}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.3px}
+.badge-borrador{background:#f0f4f8;color:#667}
+.badge-en_proceso,.badge-en_transito,.badge-programado{background:#fff3cd;color:#7a5000}
+.badge-completada,.badge-completado,.badge-vigente{background:#d4f4e2;color:#1a6e3a}
+.badge-cancelada,.badge-cancelado{background:#fde8e8;color:#a00}
+.badge-retrasado{background:#ffe0c0;color:#7a3000}
+.badge-combustible{background:#fef3cd;color:#7a5000}
+.badge-casetas{background:#e8f4f8;color:#0c3060}
+.badge-viaticos{background:#f0e8f8;color:#5c0070}
+.badge-fijos{background:#e8f0f8;color:#1a3a6e}
+.badge-mantenimiento{background:#f8ece8;color:#7a2000}
+.badge-llantas{background:#e8f8e8;color:#1a6e1a}
+.badge-otro{background:#f4f4f4;color:#555}
+.emp-tag{display:inline-block;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:700;background:#e6f1fb;color:#0c447c}
+.modal-overlay{position:fixed;inset:0;background:rgba(10,20,40,.55);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+@media(min-width:600px){.modal-overlay{align-items:center}}
+.modal-box{background:#fff;width:100%;max-width:540px;border-radius:18px 18px 0 0;padding:20px;max-height:92vh;overflow-y:auto}
+@media(min-width:600px){.modal-box{border-radius:18px;max-height:88vh}}
+.modal-box.wide{max-width:720px}
+.modal-title{font-size:15px;font-weight:700;color:#0c3060;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.modal-close{background:none;border:none;font-size:22px;cursor:pointer;color:#aaa;padding:0;line-height:1}
+.modal-close:hover{color:#555}
+.form-row{margin-bottom:12px}
+.form-row label{display:block;font-size:10px;font-weight:700;color:#667;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px}
+.form-row input,.form-row select,.form-row textarea{width:100%;padding:10px 12px;border:1.5px solid #d8dde6;border-radius:9px;font-size:14px;outline:none;font-family:inherit;color:#1a2332}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{border-color:#185fa5}
+.form-row textarea{resize:vertical;min-height:64px}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.f3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.modal-actions{display:flex;gap:8px;margin-top:18px;justify-content:flex-end}
+.btn-cancel{background:#f0f2f5;color:#555;border:none;padding:10px 18px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer}
+.btn-save{background:#185fa5;color:#fff;border:none;padding:10px 22px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer}
+.btn-save:hover{background:#0c4a8a}
+.empty{text-align:center;padding:28px 16px;color:#aaa;font-size:13px}
+.loading{text-align:center;padding:20px;color:#185fa5;font-size:13px;opacity:.8}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1a2332;color:#fff;padding:10px 22px;border-radius:12px;font-size:13px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1}
+.resumen-box{background:#f4f7fc;border-radius:10px;padding:12px;margin-bottom:12px;font-size:13px}
+.resumen-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;text-align:center}
+.resumen-item .r-lbl{font-size:10px;color:#778;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+.resumen-item .r-val{font-size:15px;font-weight:700;color:#185fa5}
+.resumen-item .r-val.big{font-size:18px;color:#0c3060}
+.costos-subtotales{background:#f4f7fc;border-radius:8px;padding:10px;margin-top:8px}
+.costo-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.costo-chip{background:#fff;border-radius:6px;padding:5px 10px;font-size:11px}
+.costo-chip .cc-lbl{color:#778;display:block;font-size:9px;text-transform:uppercase}
+.costo-chip .cc-val{font-weight:700;color:#0c3060}
+.costo-chip.total{background:#0c3060;color:#fff}
+.costo-chip.total .cc-lbl{color:rgba(255,255,255,.65)}
+.costo-chip.total .cc-val{color:#fff;font-size:13px}
+.inline-form{background:#f4f7fc;border-radius:10px;padding:14px;margin-bottom:12px}
+</style>
+</head>
+<body>
+
+<!-- ════ LOGIN ════ -->
+<div id="loginPanel">
+  <div class="login-logo">
+    <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+  </div>
+  <h1>SIF Breakdown</h1>
+  <p>Análisis de costos por giro comercial · MI Global</p>
+  <input id="usr" class="lin" type="text" autocapitalize="off" autocomplete="off" placeholder="Usuario">
+  <input id="pwd" class="lin" type="password" autocomplete="off" placeholder="Contraseña">
+  <button class="lbtn" id="loginBtn" onclick="doLogin()">Entrar</button>
+  <div id="lerr"></div>
+</div>
+
+<!-- ════ APP ════ -->
+<div id="appPanel">
+  <header>
+    <div class="hdr-brand">SIF Breakdown<span>Análisis de Costos · MI Global</span></div>
+    <div class="hdr-user">
+      <strong id="hdrUser"></strong>
+      <button class="btn-logout" onclick="doLogout()">Salir</button>
+    </div>
+  </header>
+
+  <div id="tabBar">
+    <button class="tab-btn active" id="tabBtnMaquila" onclick="switchTab('maquila')">
+      <span class="ti">🏭</span>MAQUILA
+    </button>
+    <button class="tab-btn" id="tabBtnComercio" onclick="switchTab('comercio')">
+      <span class="ti">🏪</span>COMERCIO
+    </button>
+    <button class="tab-btn" id="tabBtnTransporte" onclick="switchTab('transporte')">
+      <span class="ti">🚛</span>TRANSPORTE
+    </button>
+  </div>
+
+  <!-- ── MAQUILA ── -->
+  <div class="tab-panel active" id="panelMaquila">
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-val" id="kpiOrdenesAct">—</div><div class="kpi-lbl">Órdenes Activas</div></div>
+      <div class="kpi green"><div class="kpi-val" id="kpiOrdenesComp">—</div><div class="kpi-lbl">Completadas</div></div>
+      <div class="kpi orange"><div class="kpi-val" id="kpiOrdenesProc">—</div><div class="kpi-lbl">En Proceso</div></div>
+      <div class="kpi red"><div class="kpi-val" id="kpiOrdenesCan">—</div><div class="kpi-lbl">Canceladas</div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr">
+        <h3>Órdenes de Producción</h3>
+        <button class="btn-new" onclick="abrirModalOrden(null)">+ Nueva Orden</button>
+      </div>
+      <div id="tablaOrdenes" class="tbl-wrap"><div class="loading">Cargando...</div></div>
+    </div>
+  </div>
+
+  <!-- ── COMERCIO ── -->
+  <div class="tab-panel" id="panelComercio">
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-val" id="kpiSkus">—</div><div class="kpi-lbl">SKUs Activos</div></div>
+      <div class="kpi green"><div class="kpi-val" id="kpiVentasQ">—</div><div class="kpi-lbl">Ventas Registradas</div></div>
+      <div class="kpi orange"><div class="kpi-val" id="kpiVentasImp">—</div><div class="kpi-lbl">Total Ventas</div></div>
+      <div class="kpi red"><div class="kpi-val" id="kpiVentasIva">—</div><div class="kpi-lbl">IVA Trasladado</div></div>
+    </div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-hdr">
+        <h3>Catálogo de Productos (SKU)</h3>
+        <button class="btn-new" onclick="abrirModalSku(null)">+ Nuevo SKU</button>
+      </div>
+      <div id="tablaSkus" class="tbl-wrap"><div class="loading">Cargando...</div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr">
+        <h3>Detalle de Ventas</h3>
+        <button class="btn-new" onclick="abrirModalVenta(null)">+ Nueva Venta</button>
+      </div>
+      <div id="tablaVentas" class="tbl-wrap"><div class="loading">Cargando...</div></div>
+    </div>
+  </div>
+
+  <!-- ── TRANSPORTE ── -->
+  <div class="tab-panel" id="panelTransporte">
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-val" id="kpiViajesAct">—</div><div class="kpi-lbl">Viajes Activos</div></div>
+      <div class="kpi green"><div class="kpi-val" id="kpiViajesComp">—</div><div class="kpi-lbl">Completados</div></div>
+      <div class="kpi orange"><div class="kpi-val" id="kpiCostoViajes">—</div><div class="kpi-lbl">Costo Total</div></div>
+      <div class="kpi"><div class="kpi-val" id="kpiMargenViajes">—</div><div class="kpi-lbl">Margen Total</div></div>
+    </div>
+    <div class="card">
+      <div class="card-hdr">
+        <h3>Viajes — Ariitranst</h3>
+        <button class="btn-new" onclick="abrirModalViaje(null)">+ Nuevo Viaje</button>
+      </div>
+      <div id="tablaViajes" class="tbl-wrap"><div class="loading">Cargando...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ MODALES ════ -->
+
+<!-- Modal Orden -->
+<div id="modalOrden" style="display:none">
+  <div class="modal-overlay" onclick="cerrarModalOrden()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-title">
+        <span id="tituloOrden">Nueva Orden de Producción</span>
+        <button class="modal-close" onclick="cerrarModalOrden()">✕</button>
+      </div>
+      <div class="form-row">
+        <label>Empresa</label>
+        <select id="ordenEmpresa">
+          <option value="2">Autobot</option>
+          <option value="5">Internacional</option>
+        </select>
+      </div>
+      <div class="f2">
+        <div class="form-row"><label>Número de Orden</label><input type="text" id="ordenNumero" placeholder="OPC-2026-001"></div>
+        <div class="form-row"><label>Número de Parte</label><input type="text" id="ordenParte" placeholder="Opcional"></div>
+      </div>
+      <div class="form-row"><label>Producto / Descripción</label><input type="text" id="ordenDesc" placeholder="Descripción del producto a fabricar"></div>
+      <div class="f3">
+        <div class="form-row"><label>Cantidad Planeada</label><input type="number" id="ordenCantPlan" placeholder="0" min="0.01" step="any"></div>
+        <div class="form-row">
+          <label>Unidad</label>
+          <select id="ordenUnidad">
+            <option value="PZA">PZA</option><option value="KG">KG</option>
+            <option value="MT">MT</option><option value="LT">LT</option><option value="JGO">JGO</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Status</label>
+          <select id="ordenStatus">
+            <option value="borrador">Borrador</option><option value="en_proceso">En Proceso</option>
+            <option value="completada">Completada</option><option value="cancelada">Cancelada</option>
+          </select>
+        </div>
+      </div>
+      <div class="f2">
+        <div class="form-row"><label>Fecha Inicio</label><input type="date" id="ordenFechaIni"></div>
+        <div class="form-row"><label>Fecha Fin Planeada</label><input type="date" id="ordenFechaFin"></div>
+      </div>
+      <div class="form-row"><label>Notas</label><textarea id="ordenNotas" placeholder="Observaciones opcionales"></textarea></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="cerrarModalOrden()">Cancelar</button>
+        <button class="btn-save" onclick="guardarOrden()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Detalle Orden -->
+<div id="modalDetalleOrden" style="display:none">
+  <div class="modal-overlay" onclick="cerrarModalDetalleOrden()">
+    <div class="modal-box wide" onclick="event.stopPropagation()">
+      <div class="modal-title">
+        <span id="tituloDetalleOrden">Detalle Orden</span>
+        <button class="modal-close" onclick="cerrarModalDetalleOrden()">✕</button>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <strong style="font-size:13px;color:#0c3060">📦 Materiales (BOM)</strong>
+        <button class="btn-sm" onclick="abrirModalBom()">+ Material</button>
+      </div>
+      <div id="tablaBom" class="tbl-wrap" style="margin-bottom:14px"><div class="loading">Cargando...</div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <strong style="font-size:13px;color:#0c3060">👷 Mano de Obra</strong>
+        <button class="btn-sm" onclick="abrirModalManoObra()">+ Registro</button>
+      </div>
+      <div id="tablaManoObra" class="tbl-wrap" style="margin-bottom:14px"><div class="loading">Cargando...</div></div>
+      <div id="resumenCostoOrden" class="resumen-box"></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="cerrarModalDetalleOrden()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal BOM -->
+<div id="modalBom" style="display:none">
+  <div class="modal-overlay" onclick="cerrarModalBom()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-title">
+        <span>Agregar Material</span>
+        <button class="modal-close" onclick="cerrarModalBom()">✕</button>
+      </div>
+      <div class="form-row">
+        <label>Tipo</label>
+        <select id="bomTipo">
+          <option value="materia_prima">Materia Prima</option><option value="insumo">Insumo</option>
+          <option value="empaque">Empaque</option><option value="subcontrato">Subcontrato</option><option value="otro">Otro</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Descripción</label><input type="text" id="bomDesc" placeholder="Descripción del material"></div>
+      <div class="f2">
+        <div class="form-row"><label>Número de Parte</label><input type="text" id="bomParte" placeholder="Opcional"></div>
+        <div class="form-row"><label>Proveedor</label><input type="text" id="bomProveedor" placeholder="Opcional"></div>
+      </div>
+      <div class="f3">
+        <div class="form-row">
+          <label>Unidad</label>
+          <select id="bomUnidad">
+            <option value="KG">KG</option><option value="PZA">PZA</option>
+            <option value="LT">LT</option><option value="MT">MT</option><option value="M2">M2</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Cantidad</label><input type="number" id="bomCantidad" placeholder="0" min="0.0001" step="any"></div>
+        <div class="form-row"><label>Costo Unitario</label><input type="number" id="bomCosto" placeholder="0.00" min="0" step="any"></div>
+      </div>
+      <div class="f2">
+        <div class="form-row">
+          <label>Moneda</label>
+          <select id="bomMoneda"><option value="MXN">MXN</option><option value="USD">USD</option></select>
+        </div>
+        <div class="form-row"><label>Tipo de Cambio</label><input type="number" id="bomTc" value="1" min="1" step="any"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="cerrarModalBom()">Cancelar</button>
+        <button class="btn-save" onclick="guardarBom()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Mano Obra -->
+<div id="modalManoObra" style="display:none">
+  <div class="modal-overlay" onclick="cerrarModalManoObra()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-title">
+        <span>Registro de Mano de Obra</span>
+        <button class="modal-close" onclick="cerrarModalManoObra()">✕</button>
+      </div>
+      <div class="f2">
+        <div class="form-row"><label>Num. Empleado</label><input type="text" id="moNum" placeholder="E-0001"></div>
+        <div class="form-row"><label>Nombre Completo</label><input type="text" id="moNombre" placeholder="Nombre completo"></div>
+      </div>
+      <div class="f2">
+        <div class="form-row"><label>Área</label><input type="text" id="moArea" placeholder="Producción"></div>
+        <div class="form-row">
+          <label>Turno</label>
+          <select id="moTurno">
+            <option value="matutino">Matutino</option><option value="vespertino">Vespertino</option>
+            <option value="nocturno">Nocturno</option><option value="mixto">Mixto</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row"><label>Fecha</label><input type="date" id="moFecha"></div>
+      <div class="f2">
+        <div class="form-row"><label>Horas Regulares</label><input type="number" id="moHrsReg" value="8" min="0" step="any"></div>
+        <div class="form-row"><label>Horas Extra</label><input type="number" id="moHrsExt" value="0" min="0" step="any"></div>
+      </div>
+      <div class="f2">
+        <div class="form-row"><label>Costo / Hr Regular</label><input type="number" id="moCostoReg" placeholder="0.00" min="0" step="any"></div>
+        <div class="form-row"><label>Costo / Hr Extra</label><input type="number" id="moCostoExt" placeholder="0.00" min="0" step="any"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="cerrarModalManoObra()">Cancelar</button>
+        <button class="btn-save" onclick="guardarManoObra()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal SKU -->
+<div id="modalSku" style="display:none">
+  <div class="modal-overlay" onclick="cerrarModalSku()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-title">
+        <span id="tituloSku">Nuevo Producto / SKU</span>
+        <button class="modal-close" onclick="cerrarModalSku()">✕</button>
+      </div>
+      <div class="form-row">
+        <label>Empresa</label>
+        <select id="skuEmpresa">
+          <option value="4">Comercial</option><option value="6">Beyondmaq</option>
+        </select>
+      </div>
+      <div class="f2">
+        <div class="form-row"><label>SKU / Código</label><input type="text" id="skuCodigo" placeholder="PRD-001"></div>
+        <div class="form-row">
+          <label>Unidad de Medida</label>
+          <select id="skuUnidad">
+            <option value="PZA">PZA</option><option value="KG">KG</option>
+            <option value="LT">LT</option><option value="MT">MT</option>
+            <option value="CAJA">CAJA</option><option value="PAR">PAR</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row"><label>Descripción</label><input type="text" id="skuDesc" placeholder="Nombre del producto"></div>
+      <div class="f3">
+        <div class="form-row"><label>Categoría</label><input type="text" id="skuCat" placeholder="Categoría"></div>
+        <div class="form-row"><label>Línea</label><input type="text" id="skuLinea" placeholder="Línea"></div>
+        <div class="form-row"><label>Precio Lista</label><input type="number" id="skuPrecio" placeholder="0.00" min="0" step="any"></div>
+      </div>
+      <div class="form-row">
+        <label>Activo</label>
+        <select id="skuActivo"><option value="true">Sí</option><option value="false">No</option></select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="cerrarModalSku()">Cancelar</button>
+        <button class="btn-save" onclick="guardarSku()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Venta -->
+<div id="modalVenta" style="display:none">
+  <div class="modal-overlay" onclick="cerrarModalVenta()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-title">
+        <span id="tituloVenta">Nueva Venta</span>
+        <button class="modal-close" onclick="cerrarModalVenta()">✕</button>
+      </div>
+      <div class="form-row">
+        <label>Empresa</label>
+        <select id="ventaEmpresa" onchange="filtrarSkusPorEmpresa()">
+          <option value="4">Comercial</option><option value="6">Beyondmaq</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Producto (SKU)</label>
+        <select id="ventaProducto"><option value="">Seleccionar producto...</option></select>
+      </div>
+      <div class="f2">
+        <div class="form-row"><label>Fecha de Venta</label><input type="date" id="ventaFecha"></div>
+        <div class="form-row">
+          <label>Canal</label>
+          <select id="ventaCanal">
+            <option value="mostrador">Mostrador</option><option value="e-commerce">E-commerce</option>
+            <option value="distribuidor">Distribuidor</option><option value="exportacion">Exportación</option><option value="otro">Otro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row"><label>Cliente</label><input type="text" id="ventaCliente" placeholder="Nombre del cliente"></div>
+      <div class="form-row"><label>RFC Cliente</label><input type="text" id="ventaRfc" placeholder="XAXX010101000 (opcional)"></div>
+      <div class="f3">
+        <div class="form-row"><label>Cantidad</label><input type="number" id="ventaCantidad" placeholder="0" min="0.01" step="any"></div>
+        <div class="form-row"><label>Precio Unitario</label><input type="number" id="ventaPrecio" placeholder="0.00" min="0" step="any"></div>
+        <div class="form-row"><label>Descuento %</label><input type="number" id="ventaDesc" value="0" min="0" max="100" step="any"></div>
+      </div>
+      <div class="f2">
+        <div class="form-row"><label>IVA %</label><input type="number" id="ventaIva" value="16" min="0" max="100" step="any"></div>
+        <div class="form-row"><label>Num. Factura</label><input type="text" id="ventaFactura" placeholder="F-2026-001"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="cerrarModalVenta()">Cancelar</button>
+        <button class="btn-save" onclick="guardarVenta()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Viaje -->
+<div id="modalViaje" style="display:none">
+  <div class="modal-overlay" onclick="cerrarModalViaje()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-title">
+        <span id="tituloViaje">Nuevo Viaje</span>
+        <button class="modal-close" onclick="cerrarModalViaje()">✕</button>
+      </div>
+      <div class="f2">
+        <div class="form-row"><label>Número de Viaje</label><input type="text" id="viajeNum" placeholder="VJ-2026-001"></div>
+        <div class="form-row">
+          <label>Status</label>
+          <select id="viajeStatus">
+            <option value="programado">Programado</option><option value="en_transito">En Tránsito</option>
+            <option value="completado">Completado</option><option value="retrasado">Retrasado</option><option value="cancelado">Cancelado</option>
+          </select>
+        </div>
+      </div>
+      <div class="f2">
+        <div class="form-row"><label>Origen</label><input type="text" id="viajeOrigen" placeholder="Ciudad origen"></div>
+        <div class="form-row"><label>Destino</label><input type="text" id="viajeDestino" placeholder="Ciudad destino"></div>
+      </div>
+      <div class="f2">
+        <div class="form-row"><label>Fecha Salida</label><input type="date" id="viajeFechaSal"></div>
+        <div class="form-row"><label>Fecha Regreso</label><input type="date" id="viajeFechaReg"></div>
+      </div>
+      <div class="f2">
+        <div class="form-row"><label>Num. Operador</label><input type="text" id="viajeOperNum" placeholder="OP-001"></div>
+        <div class="form-row"><label>Nombre Operador</label><input type="text" id="viajeOperNom" placeholder="Nombre completo"></div>
+      </div>
+      <div class="f3">
+        <div class="form-row"><label>Unidad Económica</label><input type="text" id="viajeUnidad" placeholder="U-05"></div>
+        <div class="form-row"><label>Placas</label><input type="text" id="viajePlacas" placeholder="ABC-123"></div>
+        <div class="form-row"><label>KM Recorridos</label><input type="number" id="viajeKm" value="0" min="0" step="any"></div>
+      </div>
+      <div class="f2">
+        <div class="form-row"><label>Cliente / Flete Para</label><input type="text" id="viajeCliente" placeholder="Cliente"></div>
+        <div class="form-row"><label>Tarifa (MXN)</label><input type="number" id="viajeTarifa" value="0" min="0" step="any"></div>
+      </div>
+      <div class="form-row"><label>Tipo de Carga</label><input type="text" id="viajeCarga" placeholder="Descripción de la carga"></div>
+      <div class="form-row"><label>Notas</label><textarea id="viajeNotas" placeholder="Observaciones opcionales"></textarea></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="cerrarModalViaje()">Cancelar</button>
+        <button class="btn-save" onclick="guardarViaje()">Guardar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Costos Viaje -->
+<div id="modalCostosViaje" style="display:none">
+  <div class="modal-overlay" onclick="cerrarModalCostosViaje()">
+    <div class="modal-box wide" onclick="event.stopPropagation()">
+      <div class="modal-title">
+        <span id="tituloCostosViaje">Costos del Viaje</span>
+        <button class="modal-close" onclick="cerrarModalCostosViaje()">✕</button>
+      </div>
+      <div id="resumenViaje" class="resumen-box"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <strong style="font-size:13px;color:#0c3060">Desglose de Costos</strong>
+        <button class="btn-sm" onclick="abrirFormCostoViaje()">+ Costo</button>
+      </div>
+      <div id="formCostoViaje" style="display:none" class="inline-form">
+        <div class="f2">
+          <div class="form-row">
+            <label>Tipo de Costo</label>
+            <select id="cvTipo">
+              <option value="combustible">Combustible</option><option value="casetas">Casetas</option>
+              <option value="viaticos">Viáticos</option><option value="fijos">Fijos</option>
+              <option value="mantenimiento">Mantenimiento</option><option value="llantas">Llantas</option><option value="otro">Otro</option>
+            </select>
+          </div>
+          <div class="form-row"><label>Fecha</label><input type="date" id="cvFecha"></div>
+        </div>
+        <div class="form-row"><label>Descripción</label><input type="text" id="cvDesc" placeholder="Descripción del costo"></div>
+        <div class="f3">
+          <div class="form-row"><label>Monto</label><input type="number" id="cvMonto" placeholder="0.00" min="0" step="any"></div>
+          <div class="form-row"><label>Comprobante</label><input type="text" id="cvComprobante" placeholder="Folio / Factura"></div>
+          <div class="form-row"><label>Proveedor</label><input type="text" id="cvProveedor" placeholder="Proveedor"></div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px">
+          <button class="btn-cancel" style="padding:7px 14px;font-size:12px" onclick="cancelarFormCosto()">Cancelar</button>
+          <button class="btn-save" style="padding:7px 16px;font-size:12px" onclick="guardarCostoViaje()">Agregar</button>
+        </div>
+      </div>
+      <div id="tablaCostosViaje" class="tbl-wrap"><div class="loading">Cargando...</div></div>
+      <div class="modal-actions">
+        <button class="btn-cancel" onclick="cerrarModalCostosViaje()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+var SUPA_URL = 'https://nzrzrbatcmzcmrmyrama.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im56cnpyYmF0Y216Y21ybXlyYW1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIxMzYyMjEsImV4cCI6MjA5NzcxMjIyMX0.BlSTgF9gi4zMlQwPMzhzTiju-OJys4AD5Nqmf3yJX18';
+var MODULO_ID = 'breakdown';
+
+var EMPRESAS = {1:'Ariitranst',2:'Autobot',3:'Boughts',4:'Comercial',5:'Internacional',6:'Beyondmaq'};
+var GIRO = {maquila:[2,5], comercio:[4,6], transporte:[1]};
+
+var sb = null;
+var __user = null;
+var __ordenId = null;
+var __viajeId = null;
+var __skusCache = [];
+
+window.addEventListener('DOMContentLoaded', function() {
+  sb = window.supabase.createClient(SUPA_URL, SUPA_KEY, {
+    auth: {persistSession:true, autoRefreshToken:true, storage:window.localStorage}
+  });
+  sb.auth.onAuthStateChange(function(ev) {
+    if (ev === 'SIGNED_OUT') mostrarLogin('');
+  });
+  document.getElementById('pwd').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doLogin();
+  });
+  bootstrapAuth();
+});
+
+// ── AUTH ──────────────────────────────────────────
+async function bootstrapAuth() {
+  var r = await sb.auth.getSession();
+  if (!r.data.session) { mostrarLogin(''); return; }
+  await cargarUsuario(r.data.session.user);
+}
+
+async function cargarUsuario(authUser) {
+  var uname = (authUser.email || '').split('@')[0];
+  var r = await sb.from('usuarios').select('*').eq('username', uname).maybeSingle();
+  if (r.error || !r.data) { mostrarLogin('Sin acceso.'); return; }
+  var u = r.data;
+  if (!u.activo) { mostrarLogin('Usuario inactivo.'); return; }
+  var mods = Array.isArray(u.modulos) ? u.modulos : [];
+  if (u.rol !== 'admin_master' && !mods.includes(MODULO_ID)) {
+    mostrarLogin('Sin acceso al módulo Breakdown.'); return;
+  }
+  __user = u;
+  mostrarApp();
+}
+
+window.doLogin = function doLogin() {
+  var u = document.getElementById('usr').value.trim().toLowerCase();
+  var p = document.getElementById('pwd').value;
+  var err = document.getElementById('lerr');
+  var btn = document.getElementById('loginBtn');
+  err.textContent = '';
+  if (!u || !p) { err.textContent = 'Ingresa usuario y contraseña.'; return; }
+  btn.textContent = 'Verificando...'; btn.disabled = true;
+  sb.auth.signInWithPassword({email: u + '@mitech.local', password: p})
+    .then(function(r) {
+      if (r.error) {
+        err.textContent = 'Usuario o contraseña incorrectos.';
+        btn.textContent = 'Entrar'; btn.disabled = false; return;
+      }
+      cargarUsuario(r.data.user);
+    })
+    .catch(function() {
+      err.textContent = 'Error de conexión.';
+      btn.textContent = 'Entrar'; btn.disabled = false;
+    });
+};
+
+window.doLogout = function doLogout() {
+  sb.auth.signOut();
+  __user = null;
+  mostrarLogin('');
+};
+
+function mostrarLogin(msg) {
+  document.getElementById('loginPanel').style.display = 'flex';
+  document.getElementById('appPanel').style.display = 'none';
+  var btn = document.getElementById('loginBtn');
+  btn.textContent = 'Entrar'; btn.disabled = false;
+  if (msg) document.getElementById('lerr').textContent = msg;
+}
+
+function mostrarApp() {
+  document.getElementById('loginPanel').style.display = 'none';
+  document.getElementById('appPanel').style.display = 'flex';
+  document.getElementById('appPanel').style.flexDirection = 'column';
+  document.getElementById('hdrUser').textContent = __user.nombre || __user.username;
+  switchTab('maquila');
+}
+
+// ── NAV ───────────────────────────────────────────
+window.switchTab = function switchTab(tab) {
+  document.getElementById('panelMaquila').style.display = 'none';
+  document.getElementById('panelComercio').style.display = 'none';
+  document.getElementById('panelTransporte').style.display = 'none';
+  document.getElementById('tabBtnMaquila').classList.remove('active');
+  document.getElementById('tabBtnComercio').classList.remove('active');
+  document.getElementById('tabBtnTransporte').classList.remove('active');
+  if (tab === 'maquila') {
+    document.getElementById('panelMaquila').style.display = 'block';
+    document.getElementById('tabBtnMaquila').classList.add('active');
+    loadOrdenes();
+  } else if (tab === 'comercio') {
+    document.getElementById('panelComercio').style.display = 'block';
+    document.getElementById('tabBtnComercio').classList.add('active');
+    loadSkus();
+    loadVentas();
+  } else {
+    document.getElementById('panelTransporte').style.display = 'block';
+    document.getElementById('tabBtnTransporte').classList.add('active');
+    loadViajes();
+  }
+};
+
+// ── HELPERS ───────────────────────────────────────
+function fmt(n) {
+  if (n === null || n === undefined) return '—';
+  return '$' + parseFloat(n).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtN(n) {
+  if (n === null || n === undefined) return '—';
+  return parseFloat(n).toLocaleString('es-MX', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtD(d) {
+  if (!d) return '—';
+  return new Date(d + 'T12:00:00').toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'});
+}
+function bdg(st) {
+  return '<span class="badge badge-' + st + '">' + st.replace(/_/g,' ').toUpperCase() + '</span>';
+}
+function emp(id) {
+  return '<span class="emp-tag">' + (EMPRESAS[id] || 'Emp-' + id) + '</span>';
+}
+function toast(msg) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 2600);
+}
+function hoy() { return new Date().toISOString().slice(0,10); }
+function createdBy() { return __user ? (__user.username || 'sistema') : 'sistema'; }
+
+// ════════════════════════════════════════════════
+// MAQUILA
+// ════════════════════════════════════════════════
+async function loadOrdenes() {
+  document.getElementById('tablaOrdenes').innerHTML = '<div class="loading">Cargando órdenes...</div>';
+  var r = await sb.from('bkd_ordenes_produccion').select('*')
+    .in('empresa_id', GIRO.maquila).order('created_at', {ascending:false});
+  if (r.error) { document.getElementById('tablaOrdenes').innerHTML = '<div class="empty">Error al cargar.</div>'; return; }
+  var rows = r.data || [];
+  renderOrdenes(rows);
+  var act = rows.filter(function(x) { return x.status === 'borrador'; }).length;
+  var proc = rows.filter(function(x) { return x.status === 'en_proceso'; }).length;
+  var comp = rows.filter(function(x) { return x.status === 'completada'; }).length;
+  var can = rows.filter(function(x) { return x.status === 'cancelada'; }).length;
+  document.getElementById('kpiOrdenesAct').textContent = act;
+  document.getElementById('kpiOrdenesProc').textContent = proc;
+  document.getElementById('kpiOrdenesComp').textContent = comp;
+  document.getElementById('kpiOrdenesCan').textContent = can;
+}
+
+function renderOrdenes(rows) {
+  if (!rows.length) { document.getElementById('tablaOrdenes').innerHTML = '<div class="empty">Sin órdenes registradas.</div>'; return; }
+  var html = '<table><thead><tr><th>Empresa</th><th>Orden</th><th>Producto</th><th>Cant. Plan</th><th>Cant. Prod</th><th>Inicio</th><th>Fin Plan</th><th>Status</th><th>Acciones</th></tr></thead><tbody>';
+  rows.forEach(function(o) {
+    html += '<tr>';
+    html += '<td>' + emp(o.empresa_id) + '</td>';
+    html += '<td><strong>' + (o.numero_orden || '—') + '</strong>' + (o.numero_parte ? '<br><small style="color:#999">' + o.numero_parte + '</small>' : '') + '</td>';
+    html += '<td>' + (o.producto_descripcion || '—') + '</td>';
+    html += '<td>' + fmtN(o.cantidad_planeada) + ' <small>' + (o.unidad_medida || '') + '</small></td>';
+    html += '<td>' + fmtN(o.cantidad_producida) + '</td>';
+    html += '<td>' + fmtD(o.fecha_inicio) + '</td>';
+    html += '<td>' + fmtD(o.fecha_fin_planeada) + '</td>';
+    html += '<td>' + bdg(o.status) + '</td>';
+    html += '<td style="white-space:nowrap"><button class="btn-sm" onclick="verDetalleOrden(\'' + o.id + '\')">Costos</button> <button class="btn-sm" onclick="abrirModalOrden(\'' + o.id + '\')">Editar</button></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('tablaOrdenes').innerHTML = html;
+}
+
+window.abrirModalOrden = function abrirModalOrden(id) {
+  ['ordenNumero','ordenParte','ordenDesc','ordenCantPlan','ordenFechaIni','ordenFechaFin','ordenNotas'].forEach(function(x) { document.getElementById(x).value = ''; });
+  document.getElementById('ordenEmpresa').value = '2';
+  document.getElementById('ordenUnidad').value = 'PZA';
+  document.getElementById('ordenStatus').value = 'borrador';
+  delete document.getElementById('modalOrden').dataset.eid;
+  if (id) {
+    document.getElementById('tituloOrden').textContent = 'Editar Orden';
+    sb.from('bkd_ordenes_produccion').select('*').eq('id', id).single().then(function(r) {
+      if (!r.data) return;
+      var o = r.data;
+      document.getElementById('ordenEmpresa').value = o.empresa_id;
+      document.getElementById('ordenNumero').value = o.numero_orden || '';
+      document.getElementById('ordenParte').value = o.numero_parte || '';
+      document.getElementById('ordenDesc').value = o.producto_descripcion || '';
+      document.getElementById('ordenCantPlan').value = o.cantidad_planeada || '';
+      document.getElementById('ordenUnidad').value = o.unidad_medida || 'PZA';
+      document.getElementById('ordenStatus').value = o.status || 'borrador';
+      document.getElementById('ordenFechaIni').value = o.fecha_inicio || '';
+      document.getElementById('ordenFechaFin').value = o.fecha_fin_planeada || '';
+      document.getElementById('ordenNotas').value = o.notas || '';
+      document.getElementById('modalOrden').dataset.eid = id;
+    });
+  } else {
+    document.getElementById('tituloOrden').textContent = 'Nueva Orden de Producción';
+    document.getElementById('ordenFechaIni').value = hoy();
+  }
+  document.getElementById('modalOrden').style.display = 'flex';
+};
+window.cerrarModalOrden = function cerrarModalOrden() { document.getElementById('modalOrden').style.display = 'none'; };
+
+window.guardarOrden = function guardarOrden() {
+  var num = document.getElementById('ordenNumero').value.trim();
+  var desc = document.getElementById('ordenDesc').value.trim();
+  var cant = parseFloat(document.getElementById('ordenCantPlan').value);
+  var fi = document.getElementById('ordenFechaIni').value;
+  var ff = document.getElementById('ordenFechaFin').value;
+  if (!num || !desc || !cant || !fi || !ff) { toast('Completa los campos requeridos.'); return; }
+  var eid = document.getElementById('modalOrden').dataset.eid;
+  var pay = {
+    empresa_id: parseInt(document.getElementById('ordenEmpresa').value),
+    numero_orden: num, numero_parte: document.getElementById('ordenParte').value.trim() || null,
+    producto_descripcion: desc, cantidad_planeada: cant,
+    unidad_medida: document.getElementById('ordenUnidad').value,
+    status: document.getElementById('ordenStatus').value,
+    fecha_inicio: fi, fecha_fin_planeada: ff,
+    notas: document.getElementById('ordenNotas').value.trim() || null,
+    updated_at: new Date().toISOString()
+  };
+  var op = eid ? sb.from('bkd_ordenes_produccion').update(pay).eq('id', eid)
+               : (function() { pay.created_by = createdBy(); return sb.from('bkd_ordenes_produccion').insert(pay); })();
+  op.then(function(r) {
+    if (r.error) { toast('Error: ' + r.error.message); return; }
+    cerrarModalOrden(); toast(eid ? 'Orden actualizada.' : 'Orden creada.'); loadOrdenes();
+  });
+};
+
+// Detalle orden
+window.verDetalleOrden = function verDetalleOrden(id) {
+  __ordenId = id;
+  window.__bomTotal = 0; window.__moTotal = 0;
+  sb.from('bkd_ordenes_produccion').select('*').eq('id', id).single().then(function(r) {
+    if (!r.data) return;
+    var o = r.data;
+    document.getElementById('tituloDetalleOrden').textContent = 'Orden: ' + o.numero_orden + ' — ' + o.producto_descripcion;
+    document.getElementById('modalDetalleOrden').style.display = 'flex';
+    loadBom(id); loadMO(id);
+  });
+};
+window.cerrarModalDetalleOrden = function cerrarModalDetalleOrden() {
+  document.getElementById('modalDetalleOrden').style.display = 'none'; __ordenId = null;
+};
+
+async function loadBom(oid) {
+  var r = await sb.from('bkd_materiales_bom').select('*').eq('orden_id', oid).order('created_at');
+  if (r.error || !r.data.length) {
+    document.getElementById('tablaBom').innerHTML = '<div class="empty" style="padding:10px">Sin materiales.</div>';
+    window.__bomTotal = 0; actualizarResumen(); return;
+  }
+  var tot = 0;
+  var html = '<table><thead><tr><th>Tipo</th><th>Descripción</th><th>Cant</th><th>U</th><th>Costo U.</th><th>Importe MXN</th></tr></thead><tbody>';
+  r.data.forEach(function(m) {
+    tot += parseFloat(m.importe_mxn || 0);
+    html += '<tr><td>' + m.tipo + '</td>';
+    html += '<td>' + (m.descripcion || '') + (m.proveedor ? '<br><small style="color:#999">' + m.proveedor + '</small>' : '') + '</td>';
+    html += '<td>' + fmtN(m.cantidad_requerida) + '</td><td>' + (m.unidad_medida || '') + '</td>';
+    html += '<td>' + fmt(m.costo_unitario) + (m.moneda === 'USD' ? ' <small style="color:#999">USD</small>' : '') + '</td>';
+    html += '<td><strong>' + fmt(m.importe_mxn) + '</strong></td></tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('tablaBom').innerHTML = html;
+  window.__bomTotal = tot; actualizarResumen();
+}
+
+async function loadMO(oid) {
+  var r = await sb.from('bkd_tiempos_mano_obra').select('*').eq('orden_id', oid).order('fecha');
+  if (r.error || !r.data.length) {
+    document.getElementById('tablaManoObra').innerHTML = '<div class="empty" style="padding:10px">Sin registros.</div>';
+    window.__moTotal = 0; actualizarResumen(); return;
+  }
+  var tot = 0;
+  var html = '<table><thead><tr><th>Empleado</th><th>Fecha</th><th>Turno</th><th>Hrs Reg</th><th>Hrs Ext</th><th>Costo Total</th></tr></thead><tbody>';
+  r.data.forEach(function(m) {
+    tot += parseFloat(m.costo_total || 0);
+    html += '<tr><td>' + (m.empleado_nombre || '') + '<br><small style="color:#999">' + (m.empleado_num || '') + '</small></td>';
+    html += '<td>' + fmtD(m.fecha) + '</td><td>' + (m.turno || '—') + '</td>';
+    html += '<td>' + fmtN(m.horas_regulares) + '</td><td>' + fmtN(m.horas_extra) + '</td>';
+    html += '<td><strong>' + fmt(m.costo_total) + '</strong></td></tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('tablaManoObra').innerHTML = html;
+  window.__moTotal = tot; actualizarResumen();
+}
+
+function actualizarResumen() {
+  var mat = window.__bomTotal || 0;
+  var mo = window.__moTotal || 0;
+  var tot = mat + mo;
+  document.getElementById('resumenCostoOrden').innerHTML =
+    '<div class="resumen-grid">' +
+    '<div class="resumen-item"><div class="r-lbl">Materiales</div><div class="r-val">' + fmt(mat) + '</div></div>' +
+    '<div class="resumen-item"><div class="r-lbl">Mano de Obra</div><div class="r-val">' + fmt(mo) + '</div></div>' +
+    '<div class="resumen-item"><div class="r-lbl">Costo Total</div><div class="r-val big">' + fmt(tot) + '</div></div>' +
+    '</div>';
+}
+
+// BOM Modal
+window.abrirModalBom = function abrirModalBom() {
+  ['bomDesc','bomParte','bomProveedor','bomCantidad','bomCosto'].forEach(function(x) { document.getElementById(x).value = ''; });
+  document.getElementById('bomTipo').value = 'materia_prima';
+  document.getElementById('bomUnidad').value = 'KG';
+  document.getElementById('bomMoneda').value = 'MXN';
+  document.getElementById('bomTc').value = '1';
+  document.getElementById('modalBom').style.display = 'flex';
+};
+window.cerrarModalBom = function cerrarModalBom() { document.getElementById('modalBom').style.display = 'none'; };
+window.guardarBom = function guardarBom() {
+  if (!__ordenId) { toast('No hay orden activa.'); return; }
+  var desc = document.getElementById('bomDesc').value.trim();
+  var cant = parseFloat(document.getElementById('bomCantidad').value);
+  if (!desc || !cant || isNaN(cant)) { toast('Descripción y cantidad son requeridas.'); return; }
+  var pay = {
+    orden_id: __ordenId, tipo: document.getElementById('bomTipo').value, descripcion: desc,
+    numero_parte: document.getElementById('bomParte').value.trim() || null,
+    proveedor: document.getElementById('bomProveedor').value.trim() || null,
+    unidad_medida: document.getElementById('bomUnidad').value, cantidad_requerida: cant,
+    costo_unitario: parseFloat(document.getElementById('bomCosto').value) || 0,
+    moneda: document.getElementById('bomMoneda').value,
+    tipo_cambio: parseFloat(document.getElementById('bomTc').value) || 1
+  };
+  sb.from('bkd_materiales_bom').insert(pay).then(function(r) {
+    if (r.error) { toast('Error: ' + r.error.message); return; }
+    cerrarModalBom(); toast('Material agregado.'); loadBom(__ordenId);
+  });
+};
+
+// Mano Obra Modal
+window.abrirModalManoObra = function abrirModalManoObra() {
+  ['moNum','moNombre','moArea','moCostoReg','moCostoExt'].forEach(function(x) { document.getElementById(x).value = ''; });
+  document.getElementById('moTurno').value = 'matutino';
+  document.getElementById('moFecha').value = hoy();
+  document.getElementById('moHrsReg').value = '8';
+  document.getElementById('moHrsExt').value = '0';
+  document.getElementById('modalManoObra').style.display = 'flex';
+};
+window.cerrarModalManoObra = function cerrarModalManoObra() { document.getElementById('modalManoObra').style.display = 'none'; };
+window.guardarManoObra = function guardarManoObra() {
+  if (!__ordenId) { toast('No hay orden activa.'); return; }
+  var nom = document.getElementById('moNombre').value.trim();
+  var fch = document.getElementById('moFecha').value;
+  if (!nom || !fch) { toast('Nombre y fecha son requeridos.'); return; }
+  var pay = {
+    orden_id: __ordenId,
+    empleado_num: document.getElementById('moNum').value.trim() || null,
+    empleado_nombre: nom, area: document.getElementById('moArea').value.trim() || null,
+    turno: document.getElementById('moTurno').value, fecha: fch,
+    horas_regulares: parseFloat(document.getElementById('moHrsReg').value) || 0,
+    horas_extra: parseFloat(document.getElementById('moHrsExt').value) || 0,
+    costo_hora_regular: parseFloat(document.getElementById('moCostoReg').value) || 0,
+    costo_hora_extra: parseFloat(document.getElementById('moCostoExt').value) || 0
+  };
+  sb.from('bkd_tiempos_mano_obra').insert(pay).then(function(r) {
+    if (r.error) { toast('Error: ' + r.error.message); return; }
+    cerrarModalManoObra(); toast('Registro guardado.'); loadMO(__ordenId);
+  });
+};
+
+// ════════════════════════════════════════════════
+// COMERCIO
+// ════════════════════════════════════════════════
+async function loadSkus() {
+  document.getElementById('tablaSkus').innerHTML = '<div class="loading">Cargando SKUs...</div>';
+  var r = await sb.from('bkd_productos_sku').select('*').in('empresa_id', GIRO.comercio).order('sku');
+  if (r.error) { document.getElementById('tablaSkus').innerHTML = '<div class="empty">Error.</div>'; return; }
+  __skusCache = r.data || [];
+  renderSkus(__skusCache);
+  document.getElementById('kpiSkus').textContent = __skusCache.filter(function(s) { return s.activo; }).length;
+}
+
+function renderSkus(rows) {
+  if (!rows.length) { document.getElementById('tablaSkus').innerHTML = '<div class="empty">Sin productos.</div>'; return; }
+  var html = '<table><thead><tr><th>Empresa</th><th>SKU</th><th>Descripción</th><th>Categoría</th><th>Precio Lista</th><th>U.M.</th><th>Activo</th><th>Acción</th></tr></thead><tbody>';
+  rows.forEach(function(s) {
+    html += '<tr>';
+    html += '<td>' + emp(s.empresa_id) + '</td>';
+    html += '<td><strong>' + (s.sku || '—') + '</strong></td>';
+    html += '<td>' + (s.descripcion || '—') + '</td>';
+    html += '<td>' + (s.categoria || '—') + '</td>';
+    html += '<td>' + fmt(s.precio_lista) + '</td>';
+    html += '<td>' + (s.unidad_medida || '') + '</td>';
+    html += '<td style="text-align:center">' + (s.activo ? '<span style="color:#2e9e5b;font-size:16px">✓</span>' : '<span style="color:#c00;font-size:16px">✗</span>') + '</td>';
+    html += '<td><button class="btn-sm" onclick="abrirModalSku(\'' + s.id + '\')">Editar</button></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('tablaSkus').innerHTML = html;
+}
+
+window.abrirModalSku = function abrirModalSku(id) {
+  ['skuCodigo','skuDesc','skuCat','skuLinea','skuPrecio'].forEach(function(x) { document.getElementById(x).value = ''; });
+  document.getElementById('skuEmpresa').value = '4';
+  document.getElementById('skuUnidad').value = 'PZA';
+  document.getElementById('skuActivo').value = 'true';
+  delete document.getElementById('modalSku').dataset.eid;
+  if (id) {
+    document.getElementById('tituloSku').textContent = 'Editar SKU';
+    sb.from('bkd_productos_sku').select('*').eq('id', id).single().then(function(r) {
+      if (!r.data) return;
+      var s = r.data;
+      document.getElementById('skuEmpresa').value = s.empresa_id;
+      document.getElementById('skuCodigo').value = s.sku || '';
+      document.getElementById('skuDesc').value = s.descripcion || '';
+      document.getElementById('skuCat').value = s.categoria || '';
+      document.getElementById('skuLinea').value = s.linea || '';
+      document.getElementById('skuPrecio').value = s.precio_lista || '';
+      document.getElementById('skuUnidad').value = s.unidad_medida || 'PZA';
+      document.getElementById('skuActivo').value = s.activo ? 'true' : 'false';
+      document.getElementById('modalSku').dataset.eid = id;
+    });
+  } else {
+    document.getElementById('tituloSku').textContent = 'Nuevo Producto / SKU';
+  }
+  document.getElementById('modalSku').style.display = 'flex';
+};
+window.cerrarModalSku = function cerrarModalSku() { document.getElementById('modalSku').style.display = 'none'; };
+window.guardarSku = function guardarSku() {
+  var sku = document.getElementById('skuCodigo').value.trim();
+  var desc = document.getElementById('skuDesc').value.trim();
+  if (!sku || !desc) { toast('SKU y descripción son requeridos.'); return; }
+  var eid = document.getElementById('modalSku').dataset.eid;
+  var pay = {
+    empresa_id: parseInt(document.getElementById('skuEmpresa').value),
+    sku: sku, descripcion: desc,
+    categoria: document.getElementById('skuCat').value.trim() || null,
+    linea: document.getElementById('skuLinea').value.trim() || null,
+    precio_lista: parseFloat(document.getElementById('skuPrecio').value) || 0,
+    unidad_medida: document.getElementById('skuUnidad').value,
+    activo: document.getElementById('skuActivo').value === 'true',
+    updated_at: new Date().toISOString()
+  };
+  var op = eid ? sb.from('bkd_productos_sku').update(pay).eq('id', eid)
+               : (function() { pay.created_by = createdBy(); return sb.from('bkd_productos_sku').insert(pay); })();
+  op.then(function(r) {
+    if (r.error) { toast('Error: ' + r.error.message); return; }
+    cerrarModalSku(); toast(eid ? 'SKU actualizado.' : 'SKU creado.'); loadSkus();
+  });
+};
+
+async function loadVentas() {
+  document.getElementById('tablaVentas').innerHTML = '<div class="loading">Cargando ventas...</div>';
+  var r = await sb.from('bkd_detalle_ventas').select('*, bkd_productos_sku(sku,descripcion)')
+    .in('empresa_id', GIRO.comercio).order('fecha_venta', {ascending:false}).limit(200);
+  if (r.error) { document.getElementById('tablaVentas').innerHTML = '<div class="empty">Error.</div>'; return; }
+  var rows = r.data || [];
+  renderVentas(rows);
+  var totImp = rows.reduce(function(a, v) { return a + parseFloat(v.total || 0); }, 0);
+  var totIva = rows.reduce(function(a, v) { return a + parseFloat(v.iva_importe || 0); }, 0);
+  document.getElementById('kpiVentasQ').textContent = rows.length;
+  document.getElementById('kpiVentasImp').textContent = fmt(totImp);
+  document.getElementById('kpiVentasIva').textContent = fmt(totIva);
+}
+
+function renderVentas(rows) {
+  if (!rows.length) { document.getElementById('tablaVentas').innerHTML = '<div class="empty">Sin ventas registradas.</div>'; return; }
+  var html = '<table><thead><tr><th>Empresa</th><th>Fecha</th><th>Cliente</th><th>SKU</th><th>Cant</th><th>P.Unit</th><th>Subtotal</th><th>IVA</th><th>Total</th><th>Canal</th><th>Status</th></tr></thead><tbody>';
+  rows.forEach(function(v) {
+    var skuStr = v.bkd_productos_sku ? (v.bkd_productos_sku.sku + '<br><small style="color:#999">' + v.bkd_productos_sku.descripcion + '</small>') : '—';
+    html += '<tr>';
+    html += '<td>' + emp(v.empresa_id) + '</td>';
+    html += '<td>' + fmtD(v.fecha_venta) + '</td>';
+    html += '<td>' + (v.cliente || '—') + (v.rfc_cliente ? '<br><small style="color:#999">' + v.rfc_cliente + '</small>' : '') + '</td>';
+    html += '<td>' + skuStr + '</td>';
+    html += '<td>' + fmtN(v.cantidad) + '</td>';
+    html += '<td>' + fmt(v.precio_unitario) + '</td>';
+    html += '<td>' + fmt(v.subtotal) + '</td>';
+    html += '<td>' + fmt(v.iva_importe) + '</td>';
+    html += '<td><strong>' + fmt(v.total) + '</strong></td>';
+    html += '<td>' + (v.canal_venta || '') + '</td>';
+    html += '<td>' + bdg(v.status) + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('tablaVentas').innerHTML = html;
+}
+
+window.filtrarSkusPorEmpresa = function filtrarSkusPorEmpresa() {
+  var emp2 = parseInt(document.getElementById('ventaEmpresa').value);
+  var sel = document.getElementById('ventaProducto');
+  sel.innerHTML = '<option value="">Seleccionar producto...</option>';
+  __skusCache.filter(function(s) { return s.empresa_id === emp2 && s.activo; }).forEach(function(s) {
+    sel.innerHTML += '<option value="' + s.id + '">' + s.sku + ' — ' + s.descripcion + '</option>';
+  });
+};
+
+window.abrirModalVenta = function abrirModalVenta() {
+  ['ventaCliente','ventaRfc','ventaCantidad','ventaPrecio','ventaFactura'].forEach(function(x) { document.getElementById(x).value = ''; });
+  document.getElementById('ventaEmpresa').value = '4';
+  document.getElementById('ventaCanal').value = 'mostrador';
+  document.getElementById('ventaDesc').value = '0';
+  document.getElementById('ventaIva').value = '16';
+  document.getElementById('ventaFecha').value = hoy();
+  filtrarSkusPorEmpresa();
+  document.getElementById('tituloVenta').textContent = 'Nueva Venta';
+  document.getElementById('modalVenta').style.display = 'flex';
+};
+window.cerrarModalVenta = function cerrarModalVenta() { document.getElementById('modalVenta').style.display = 'none'; };
+window.guardarVenta = function guardarVenta() {
+  var pid = document.getElementById('ventaProducto').value;
+  var cli = document.getElementById('ventaCliente').value.trim();
+  var fch = document.getElementById('ventaFecha').value;
+  var cant = parseFloat(document.getElementById('ventaCantidad').value);
+  var prc = parseFloat(document.getElementById('ventaPrecio').value);
+  if (!pid || !cli || !fch || !cant || isNaN(prc)) {
+    toast('Completa producto, cliente, fecha, cantidad y precio.'); return;
+  }
+  var pay = {
+    empresa_id: parseInt(document.getElementById('ventaEmpresa').value),
+    producto_id: pid, fecha_venta: fch, cliente: cli,
+    rfc_cliente: document.getElementById('ventaRfc').value.trim() || null,
+    cantidad: cant, precio_unitario: prc,
+    descuento_pct: parseFloat(document.getElementById('ventaDesc').value) || 0,
+    iva_pct: parseFloat(document.getElementById('ventaIva').value) || 16,
+    canal_venta: document.getElementById('ventaCanal').value,
+    numero_factura: document.getElementById('ventaFactura').value.trim() || null,
+    status: 'vigente', created_by: createdBy()
+  };
+  sb.from('bkd_detalle_ventas').insert(pay).then(function(r) {
+    if (r.error) { toast('Error: ' + r.error.message); return; }
+    cerrarModalVenta(); toast('Venta registrada.'); loadVentas();
+  });
+};
+
+// ════════════════════════════════════════════════
+// TRANSPORTE
+// ════════════════════════════════════════════════
+async function loadViajes() {
+  document.getElementById('tablaViajes').innerHTML = '<div class="loading">Cargando viajes...</div>';
+  var r = await sb.from('bkd_v_costos_viaje').select('*').in('empresa_id', GIRO.transporte).order('fecha_salida', {ascending:false});
+  var usaVista = true;
+  if (r.error) {
+    usaVista = false;
+    r = await sb.from('bkd_viajes').select('*').in('empresa_id', GIRO.transporte).order('fecha_salida', {ascending:false});
+  }
+  if (r.error) { document.getElementById('tablaViajes').innerHTML = '<div class="empty">Error.</div>'; return; }
+  var rows = r.data || [];
+  renderViajes(rows, usaVista);
+  var act = rows.filter(function(x) { return x.status === 'en_transito' || x.status === 'programado'; }).length;
+  var comp = rows.filter(function(x) { return x.status === 'completado'; }).length;
+  document.getElementById('kpiViajesAct').textContent = act;
+  document.getElementById('kpiViajesComp').textContent = comp;
+  if (usaVista) {
+    var costoTot = rows.reduce(function(a, v) { return a + parseFloat(v.costo_total || 0); }, 0);
+    var margenTot = rows.reduce(function(a, v) { return a + parseFloat(v.margen || 0); }, 0);
+    document.getElementById('kpiCostoViajes').textContent = fmt(costoTot);
+    var mgEl = document.getElementById('kpiMargenViajes');
+    mgEl.textContent = fmt(margenTot);
+    mgEl.style.color = margenTot >= 0 ? '#2e9e5b' : '#c0392b';
+  }
+}
+
+function renderViajes(rows, conVista) {
+  if (!rows.length) { document.getElementById('tablaViajes').innerHTML = '<div class="empty">Sin viajes registrados.</div>'; return; }
+  var extra = conVista ? '<th>Tarifa</th><th>Costo</th><th>Margen</th>' : '';
+  var html = '<table><thead><tr><th>Viaje</th><th>Ruta</th><th>Salida</th><th>Operador</th><th>Unidad</th>' + extra + '<th>Status</th><th>Acciones</th></tr></thead><tbody>';
+  rows.forEach(function(v) {
+    var extraTd = '';
+    if (conVista) {
+      var mg = parseFloat(v.margen || 0);
+      extraTd = '<td>' + fmt(v.tarifa) + '</td>' +
+        '<td>' + fmt(v.costo_total) + '</td>' +
+        '<td style="font-weight:700;color:' + (mg >= 0 ? '#2e9e5b' : '#c0392b') + '">' + fmt(mg) + '</td>';
+    }
+    html += '<tr>';
+    html += '<td><strong>' + (v.numero_viaje || '—') + '</strong></td>';
+    html += '<td>' + (v.origen || '—') + ' → ' + (v.destino || '—') + '</td>';
+    html += '<td>' + fmtD(v.fecha_salida) + '</td>';
+    html += '<td>' + (v.operador_nombre || '—') + '</td>';
+    html += '<td>' + (v.unidad_economica || '—') + '</td>';
+    html += extraTd;
+    html += '<td>' + bdg(v.status) + '</td>';
+    html += '<td style="white-space:nowrap"><button class="btn-sm" onclick="abrirModalCostosViaje(\'' + v.id + '\')">Costos</button> <button class="btn-sm" onclick="abrirModalViaje(\'' + v.id + '\')">Editar</button></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('tablaViajes').innerHTML = html;
+}
+
+window.abrirModalViaje = function abrirModalViaje(id) {
+  ['viajeNum','viajeOrigen','viajeDestino','viajeFechaSal','viajeFechaReg','viajeOperNum','viajeOperNom','viajeUnidad','viajePlacas','viajeCliente','viajeCarga','viajeNotas'].forEach(function(x) { document.getElementById(x).value = ''; });
+  document.getElementById('viajeStatus').value = 'programado';
+  document.getElementById('viajeKm').value = '0';
+  document.getElementById('viajeTarifa').value = '0';
+  delete document.getElementById('modalViaje').dataset.eid;
+  if (id) {
+    document.getElementById('tituloViaje').textContent = 'Editar Viaje';
+    sb.from('bkd_viajes').select('*').eq('id', id).single().then(function(r) {
+      if (!r.data) return;
+      var v = r.data;
+      document.getElementById('viajeNum').value = v.numero_viaje || '';
+      document.getElementById('viajeStatus').value = v.status || 'programado';
+      document.getElementById('viajeOrigen').value = v.origen || '';
+      document.getElementById('viajeDestino').value = v.destino || '';
+      document.getElementById('viajeFechaSal').value = v.fecha_salida || '';
+      document.getElementById('viajeFechaReg').value = v.fecha_regreso || '';
+      document.getElementById('viajeOperNum').value = v.operador_num || '';
+      document.getElementById('viajeOperNom').value = v.operador_nombre || '';
+      document.getElementById('viajeUnidad').value = v.unidad_economica || '';
+      document.getElementById('viajePlacas').value = v.placas || '';
+      document.getElementById('viajeKm').value = v.km_recorridos || '0';
+      document.getElementById('viajeCliente').value = v.cliente || '';
+      document.getElementById('viajeTarifa').value = v.tarifa || '0';
+      document.getElementById('viajeCarga').value = v.tipo_carga || '';
+      document.getElementById('viajeNotas').value = v.notas || '';
+      document.getElementById('modalViaje').dataset.eid = id;
+    });
+  } else {
+    document.getElementById('tituloViaje').textContent = 'Nuevo Viaje';
+    document.getElementById('viajeFechaSal').value = hoy();
+  }
+  document.getElementById('modalViaje').style.display = 'flex';
+};
+window.cerrarModalViaje = function cerrarModalViaje() { document.getElementById('modalViaje').style.display = 'none'; };
+window.guardarViaje = function guardarViaje() {
+  var num = document.getElementById('viajeNum').value.trim();
+  var ori = document.getElementById('viajeOrigen').value.trim();
+  var dst = document.getElementById('viajeDestino').value.trim();
+  var opn = document.getElementById('viajeOperNom').value.trim();
+  var fch = document.getElementById('viajeFechaSal').value;
+  if (!num || !ori || !dst || !opn || !fch) { toast('Completa número, ruta, operador y fecha de salida.'); return; }
+  var eid = document.getElementById('modalViaje').dataset.eid;
+  var pay = {
+    empresa_id: 1, numero_viaje: num, origen: ori, destino: dst, fecha_salida: fch,
+    fecha_regreso: document.getElementById('viajeFechaReg').value || null,
+    operador_num: document.getElementById('viajeOperNum').value.trim() || null,
+    operador_nombre: opn,
+    unidad_economica: document.getElementById('viajeUnidad').value.trim() || null,
+    placas: document.getElementById('viajePlacas').value.trim() || null,
+    km_recorridos: parseFloat(document.getElementById('viajeKm').value) || 0,
+    cliente: document.getElementById('viajeCliente').value.trim() || null,
+    tarifa: parseFloat(document.getElementById('viajeTarifa').value) || 0,
+    tipo_carga: document.getElementById('viajeCarga').value.trim() || null,
+    status: document.getElementById('viajeStatus').value,
+    notas: document.getElementById('viajeNotas').value.trim() || null,
+    updated_at: new Date().toISOString()
+  };
+  var op = eid ? sb.from('bkd_viajes').update(pay).eq('id', eid)
+               : (function() { pay.created_by = createdBy(); return sb.from('bkd_viajes').insert(pay); })();
+  op.then(function(r) {
+    if (r.error) { toast('Error: ' + r.error.message); return; }
+    cerrarModalViaje(); toast(eid ? 'Viaje actualizado.' : 'Viaje registrado.'); loadViajes();
+  });
+};
+
+// Costos Viaje
+window.abrirModalCostosViaje = function abrirModalCostosViaje(id) {
+  __viajeId = id;
+  document.getElementById('formCostoViaje').style.display = 'none';
+  sb.from('bkd_viajes').select('*').eq('id', id).single().then(function(r) {
+    if (!r.data) return;
+    var v = r.data;
+    document.getElementById('tituloCostosViaje').textContent = 'Costos: ' + v.numero_viaje;
+    document.getElementById('resumenViaje').innerHTML =
+      '<div class="resumen-grid">' +
+      '<div class="resumen-item"><div class="r-lbl">Ruta</div><div style="font-size:12px;font-weight:600;color:#0c3060">' + v.origen + ' → ' + v.destino + '</div></div>' +
+      '<div class="resumen-item"><div class="r-lbl">Operador</div><div style="font-size:12px;font-weight:600;color:#0c3060">' + v.operador_nombre + '</div></div>' +
+      '<div class="resumen-item"><div class="r-lbl">Tarifa</div><div class="r-val">' + fmt(v.tarifa) + '</div></div>' +
+      '</div>';
+    document.getElementById('modalCostosViaje').style.display = 'flex';
+    loadCostosViaje(id);
+  });
+};
+window.cerrarModalCostosViaje = function cerrarModalCostosViaje() {
+  document.getElementById('modalCostosViaje').style.display = 'none'; __viajeId = null;
+};
+
+async function loadCostosViaje(vid) {
+  var r = await sb.from('bkd_costos_viaje').select('*').eq('viaje_id', vid).order('fecha');
+  if (r.error || !r.data.length) {
+    document.getElementById('tablaCostosViaje').innerHTML = '<div class="empty" style="padding:12px">Sin costos registrados. Agrega el primero.</div>';
+    return;
+  }
+  var tots = {combustible:0,casetas:0,viaticos:0,fijos:0,mantenimiento:0,llantas:0,otro:0};
+  var html = '<table><thead><tr><th>Tipo</th><th>Descripción</th><th>Fecha</th><th>Comprobante</th><th>Monto</th></tr></thead><tbody>';
+  r.data.forEach(function(c) {
+    tots[c.tipo_costo] = (tots[c.tipo_costo] || 0) + parseFloat(c.monto || 0);
+    html += '<tr>';
+    html += '<td>' + bdg(c.tipo_costo) + '</td>';
+    html += '<td>' + (c.descripcion || '—') + (c.proveedor ? '<br><small style="color:#999">' + c.proveedor + '</small>' : '') + '</td>';
+    html += '<td>' + fmtD(c.fecha) + '</td>';
+    html += '<td>' + (c.comprobante || '—') + '</td>';
+    html += '<td><strong>' + fmt(c.monto) + '</strong></td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  var total = Object.values(tots).reduce(function(a, b) { return a + b; }, 0);
+  var labs = {combustible:'⛽ Combustible',casetas:'🛣️ Casetas',viaticos:'🍽️ Viáticos',fijos:'🔧 Fijos',mantenimiento:'🔩 Mant.',llantas:'🔴 Llantas',otro:'Otros'};
+  html += '<div class="costos-subtotales"><div class="costo-chips">';
+  Object.keys(labs).forEach(function(k) {
+    if (tots[k]) {
+      html += '<div class="costo-chip"><span class="cc-lbl">' + labs[k] + '</span><span class="cc-val">' + fmt(tots[k]) + '</span></div>';
+    }
+  });
+  html += '<div class="costo-chip total"><span class="cc-lbl">TOTAL COSTOS</span><span class="cc-val">' + fmt(total) + '</span></div>';
+  html += '</div></div>';
+  document.getElementById('tablaCostosViaje').innerHTML = html;
+}
+
+window.abrirFormCostoViaje = function abrirFormCostoViaje() {
+  ['cvDesc','cvMonto','cvComprobante','cvProveedor'].forEach(function(x) { document.getElementById(x).value = ''; });
+  document.getElementById('cvTipo').value = 'combustible';
+  document.getElementById('cvFecha').value = hoy();
+  document.getElementById('formCostoViaje').style.display = 'block';
+};
+window.cancelarFormCosto = function cancelarFormCosto() { document.getElementById('formCostoViaje').style.display = 'none'; };
+window.guardarCostoViaje = function guardarCostoViaje() {
+  if (!__viajeId) { toast('No hay viaje activo.'); return; }
+  var desc = document.getElementById('cvDesc').value.trim();
+  var monto = parseFloat(document.getElementById('cvMonto').value);
+  var fch = document.getElementById('cvFecha').value;
+  if (!desc || !monto || !fch) { toast('Completa descripción, monto y fecha.'); return; }
+  var pay = {
+    viaje_id: __viajeId,
+    tipo_costo: document.getElementById('cvTipo').value,
+    descripcion: desc, monto: monto, fecha: fch,
+    comprobante: document.getElementById('cvComprobante').value.trim() || null,
+    proveedor: document.getElementById('cvProveedor').value.trim() || null,
+    created_by: createdBy()
+  };
+  sb.from('bkd_costos_viaje').insert(pay).then(function(r) {
+    if (r.error) { toast('Error: ' + r.error.message); return; }
+    document.getElementById('formCostoViaje').style.display = 'none';
+    toast('Costo agregado.'); loadCostosViaje(__viajeId); loadViajes();
+  });
+};
+</script>
+</body>
+</html>
