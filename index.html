@@ -107,17 +107,13 @@ tr:hover td{background:#fafbff}
 </head>
 <body>
 
-<!-- ════ LOGIN ════ -->
+<!-- ════ REDIRECT SCREEN ════ -->
 <div id="loginPanel">
   <div class="login-logo">
     <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
   </div>
   <h1>SIF Breakdown</h1>
-  <p>Análisis de costos por giro comercial · MI Global</p>
-  <input id="usr" class="lin" type="text" autocapitalize="off" autocomplete="off" placeholder="Usuario">
-  <input id="pwd" class="lin" type="password" autocomplete="off" placeholder="Contraseña">
-  <button class="lbtn" id="loginBtn" onclick="doLogin()">Entrar</button>
-  <div id="lerr"></div>
+  <p id="lerr">Verificando sesión...</p>
 </div>
 
 <!-- ════ APP ════ -->
@@ -550,96 +546,53 @@ tr:hover td{background:#fafbff}
 <div id="toast"></div>
 
 <script>
-var APP_VERSION = '2026.08.25.2';
-var SUPA_URL = 'https://nzrzrbatcmzcmrmyrama.supabase.co';
-var SUPA_KEY = 'sb_publishable_JMa-_sAXxw3LQrlqR7p7ww_RqLhY89X';
+var APP_VERSION = '2026.08.25.3';
+var SB_URL = 'https://nzrzrbatcmzcmrmyrama.supabase.co';
+var SB_KEY = 'sb_publishable_JMa-_sAXxw3LQrlqR7p7ww_RqLhY89X';
 var MODULO_ID = 'breakdown';
+var PORTAL_URL = 'https://jcgt1976.github.io/SIF-Portal/';
 
 var EMPRESAS = {1:'Ariitranst',2:'Autobot',3:'Boughts',4:'Comercial',5:'Internacional',6:'Beyondmaq'};
 var GIRO = {maquila:[2,5], comercio:[4,6], transporte:[1]};
 
-var sb = null;
+var sb = supabase.createClient(SB_URL, SB_KEY);
 var __user = null;
 var __ordenId = null;
 var __viajeId = null;
 var __skusCache = [];
 
-window.addEventListener('DOMContentLoaded', function() {
-  sb = window.supabase.createClient(SUPA_URL, SUPA_KEY, {
-    auth: {persistSession:true, autoRefreshToken:true, storage:window.localStorage}
-  });
-  sb.auth.onAuthStateChange(function(ev) {
-    if (ev === 'SIGNED_OUT') mostrarLogin('');
-  });
-  document.getElementById('pwd').addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') doLogin();
-  });
-  bootstrapAuth();
+// ── AUTH — mismo patrón que Deadpool ──────────────
+sb.auth.onAuthStateChange(function(event) {
+  if (event === 'SIGNED_OUT') {
+    __user = null;
+    window.location.replace(PORTAL_URL);
+  }
 });
 
-// ── AUTH ──────────────────────────────────────────
-async function bootstrapAuth() {
-  var timer = setTimeout(function() { mostrarLogin(''); }, 6000);
+(async function bootstrap() {
   try {
-    var r = await sb.auth.getSession();
-    clearTimeout(timer);
-    if (!r.data.session) { mostrarLogin(''); return; }
-    await cargarUsuario(r.data.session.user);
-  } catch(e) {
-    clearTimeout(timer);
-    mostrarLogin('');
-  }
-}
-
-async function cargarUsuario(authUser) {
-  var uname = (authUser.email || '').split('@')[0];
-  var r = await sb.from('usuarios').select('*').eq('username', uname).maybeSingle();
-  if (r.error || !r.data) { mostrarLogin('Sin acceso.'); return; }
-  var u = r.data;
-  if (!u.activo) { mostrarLogin('Usuario inactivo.'); return; }
-  var mods = Array.isArray(u.modulos) ? u.modulos : [];
-  if (u.rol !== 'admin_master' && !mods.includes(MODULO_ID)) {
-    mostrarLogin('Sin acceso al módulo Breakdown.'); return;
-  }
-  __user = u;
-  mostrarApp();
-}
-
-window.doLogin = function doLogin() {
-  var u = document.getElementById('usr').value.trim().toLowerCase();
-  var p = document.getElementById('pwd').value;
-  var err = document.getElementById('lerr');
-  var btn = document.getElementById('loginBtn');
-  err.textContent = '';
-  if (!u || !p) { err.textContent = 'Ingresa usuario y contraseña.'; return; }
-  btn.textContent = 'Verificando...'; btn.disabled = true;
-  sb.auth.signInWithPassword({email: u + '@mitech.local', password: p})
-    .then(function(r) {
-      if (r.error) {
-        err.textContent = 'Usuario o contraseña incorrectos.';
-        btn.textContent = 'Entrar'; btn.disabled = false; return;
+    var res = await sb.auth.getSession();
+    var session = res.data && res.data.session;
+    if (session && session.user) {
+      var r = await sb.from('usuarios').select('*').eq('auth_id', session.user.id).single();
+      if (!r.error && r.data && r.data.activo !== false && !r.data.debe_cambiar) {
+        var u = r.data;
+        var mods = Array.isArray(u.modulos) ? u.modulos : [];
+        if (u.rol === 'admin_master' || mods.includes(MODULO_ID)) {
+          __user = u;
+          mostrarApp();
+          return;
+        }
       }
-      cargarUsuario(r.data.user);
-    })
-    .catch(function() {
-      err.textContent = 'Error de conexión.';
-      btn.textContent = 'Entrar'; btn.disabled = false;
-    });
-};
+      try { await sb.auth.signOut(); } catch(e2) {}
+    }
+  } catch(e) { console.error('bootstrap:', e); }
+  window.location.replace(PORTAL_URL);
+})();
 
 window.doLogout = function doLogout() {
   sb.auth.signOut();
-  __user = null;
-  mostrarLogin('');
 };
-
-function mostrarLogin(msg) {
-  document.getElementById('loginPanel').style.display = 'flex';
-  document.getElementById('appPanel').style.display = 'none';
-  var btn = document.getElementById('loginBtn');
-  btn.textContent = 'Entrar'; btn.disabled = false;
-  if (msg) document.getElementById('lerr').textContent = msg;
-}
 
 function mostrarApp() {
   document.getElementById('loginPanel').style.display = 'none';
