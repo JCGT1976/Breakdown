@@ -570,47 +570,29 @@ sb.auth.onAuthStateChange(function(event) {
 });
 
 (async function bootstrap() {
-  var dbg = document.getElementById('lerr');
   try {
-    dbg.textContent = 'Conectando a Supabase...';
     var res = await sb.auth.getSession();
     var session = res.data && res.data.session;
-    if (!session || !session.user) {
-      dbg.textContent = 'Sin sesión activa. Redirigiendo al Portal...';
-      setTimeout(function(){ window.location.replace(PORTAL_URL); }, 2000);
-      return;
+    if (session && session.user) {
+      var u = null;
+      var r1 = await sb.from('usuarios').select('*').eq('auth_id', session.user.id).maybeSingle();
+      if (!r1.error && r1.data) { u = r1.data; }
+      if (!u) {
+        var uname = (session.user.email || '').split('@')[0];
+        var r2 = await sb.from('usuarios').select('*').eq('username', uname).maybeSingle();
+        if (!r2.error && r2.data) { u = r2.data; }
+      }
+      if (u && u.activo !== false) {
+        var mods = Array.isArray(u.modulos) ? u.modulos : [];
+        if (u.rol === 'admin_master' || mods.includes(MODULO_ID)) {
+          __user = u;
+          mostrarApp();
+          return;
+        }
+      }
     }
-    dbg.textContent = 'Sesión OK: ' + session.user.email + ' | Buscando usuario...';
-    var u = null;
-    var r1 = await sb.from('usuarios').select('*').eq('auth_id', session.user.id).maybeSingle();
-    dbg.textContent = 'auth_id query: ' + (r1.error ? 'ERROR ' + r1.error.message : (r1.data ? 'FOUND ' + r1.data.username : 'NOT FOUND'));
-    if (!r1.error && r1.data) { u = r1.data; }
-    if (!u) {
-      var uname = (session.user.email || '').split('@')[0];
-      var r2 = await sb.from('usuarios').select('*').eq('username', uname).maybeSingle();
-      dbg.textContent += ' | username query: ' + (r2.error ? 'ERROR ' + r2.error.message : (r2.data ? 'FOUND' : 'NOT FOUND'));
-      if (!r2.error && r2.data) { u = r2.data; }
-    }
-    if (!u) {
-      dbg.textContent = 'Usuario no encontrado en tabla usuarios. auth_id=' + session.user.id;
-      return;
-    }
-    if (u.activo === false) {
-      dbg.textContent = 'Usuario inactivo.';
-      return;
-    }
-    var mods = Array.isArray(u.modulos) ? u.modulos : [];
-    dbg.textContent = 'Usuario: ' + u.username + ' | rol: ' + u.rol + ' | modulos: ' + JSON.stringify(mods);
-    if (u.rol !== 'admin_master' && !mods.includes(MODULO_ID)) {
-      dbg.textContent = 'Sin acceso al módulo breakdown. modulos=' + JSON.stringify(mods);
-      return;
-    }
-    __user = u;
-    mostrarApp();
-  } catch(e) {
-    dbg.textContent = 'ERROR: ' + e.message;
-    console.error('bkd bootstrap:', e);
-  }
+  } catch(e) { console.error('bkd bootstrap:', e); }
+  window.location.replace(PORTAL_URL);
 })();
 
 window.doLogout = function doLogout() {
