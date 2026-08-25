@@ -27,6 +27,19 @@ header{background:linear-gradient(135deg,#0c3060 0%,#185fa5 100%);color:#fff;pad
 .hdr-user strong{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .btn-logout{background:rgba(255,255,255,.15);border:none;color:#fff;padding:5px 10px;border-radius:8px;font-size:11px;cursor:pointer}
 .btn-logout:hover{background:rgba(255,255,255,.25)}
+.user-chip{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:4px 10px 4px 4px;flex-shrink:0}
+.user-avatar{width:26px;height:26px;border-radius:50%;background:#fff;color:#185fa5;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.user-meta{display:flex;flex-direction:column;line-height:1.15}
+.user-name{font-size:11.5px;font-weight:600;color:#fff;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.role-badge{font-size:9px;font-weight:700;padding:1px 7px;border-radius:20px;text-transform:uppercase;letter-spacing:.05em;width:fit-content;margin-top:1px}
+.role-admin_master{background:rgba(255,215,0,.22);color:#ffd700}
+.role-admin{background:rgba(255,99,99,.22);color:#ffb3b3}
+.role-cohost{background:rgba(120,200,255,.22);color:#bfe6ff}
+.role-view{background:rgba(120,255,190,.22);color:#b8ffe0}
+.btn-ghost-hdr{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap}
+.btn-ghost-hdr:hover{background:rgba(255,255,255,.22)}
+#sessionBar{background:#e6f1fb;border-bottom:1px solid #cdd9e6;padding:4px 16px;display:flex;align-items:center;justify-content:flex-end;gap:8px;font-size:11px;color:#5a6b80}
+#sessionTimer{font-weight:700;font-family:'Courier New',monospace;color:#b8860b}
 #tabBar{display:flex;background:#0c3060;border-bottom:2px solid #072348}
 .tab-btn{flex:1;padding:10px 4px;background:none;border:none;color:rgba(255,255,255,.55);font-size:11px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;border-bottom:3px solid transparent;transition:all .2s;letter-spacing:.4px}
 .tab-btn .ti{font-size:20px}
@@ -121,10 +134,22 @@ tr:hover td{background:#fafbff}
   <header>
     <div class="hdr-brand">SIF Breakdown<span>Análisis de Costos · MI Global</span></div>
     <div class="hdr-user">
-      <strong id="hdrUser"></strong>
+      <div class="user-chip">
+        <div class="user-avatar" id="hdrAvatar">—</div>
+        <div class="user-meta">
+          <span class="user-name" id="hdrUser"></span>
+          <span class="role-badge" id="hdrRole"></span>
+        </div>
+      </div>
+      <button class="btn-ghost-hdr" onclick="window.location.href=PORTAL_URL">← Portal</button>
       <button class="btn-logout" onclick="doLogout()">Salir</button>
     </div>
   </header>
+
+  <div id="sessionBar">
+    Sesión activa · expira en <span id="sessionTimer">20:00</span>
+    <button class="btn-ghost-hdr" onclick="resetTimer()" style="padding:2px 8px;font-size:10px">Renovar</button>
+  </div>
 
   <div id="tabBar">
     <button class="tab-btn active" id="tabBtnMaquila" onclick="switchTab('maquila')">
@@ -546,7 +571,7 @@ tr:hover td{background:#fafbff}
 <div id="toast"></div>
 
 <script>
-var APP_VERSION = '2026.08.25.3';
+var APP_VERSION = '2026.08.25.4';
 var SB_URL = 'https://nzrzrbatcmzcmrmyrama.supabase.co';
 var SB_KEY = 'sb_publishable_JMa-_sAXxw3LQrlqR7p7ww_RqLhY89X';
 var MODULO_ID = 'breakdown';
@@ -599,13 +624,61 @@ window.doLogout = function doLogout() {
   sb.auth.signOut();
 };
 
+function initials(nom) {
+  var s = String(nom || '').trim();
+  if (!s) return '?';
+  var parts = s.split(/\s+/);
+  if (parts.length === 1) return parts[0].substring(0,2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+var ROLE_LABELS = {admin_master:'Admon Master', admin:'Admin', cohost:'Cohost', view:'Vista'};
+
 function mostrarApp() {
   document.getElementById('loginPanel').style.display = 'none';
   document.getElementById('appPanel').style.display = 'flex';
   document.getElementById('appPanel').style.flexDirection = 'column';
-  document.getElementById('hdrUser').textContent = __user.nombre || __user.username;
+  var nombre = __user.nombre || __user.username;
+  document.getElementById('hdrUser').textContent = nombre;
+  document.getElementById('hdrAvatar').textContent = initials(nombre);
+  var rolEl = document.getElementById('hdrRole');
+  rolEl.textContent = ROLE_LABELS[__user.rol] || __user.rol || '';
+  rolEl.className = 'role-badge role-' + (__user.rol || '');
   switchTab('maquila');
+  startTimer();
 }
+
+/* ── SESSION TIMER ── */
+var SESSION_TOTAL = 1200; // 20 minutos
+var sessionSeconds = SESSION_TOTAL;
+var sessionInterval = null;
+var _resetThrottle = null;
+
+function startTimer() {
+  sessionSeconds = SESSION_TOTAL;
+  clearInterval(sessionInterval);
+  sessionInterval = setInterval(function() {
+    sessionSeconds--;
+    var m = Math.floor(sessionSeconds/60).toString().padStart(2,'0');
+    var s = (sessionSeconds%60).toString().padStart(2,'0');
+    var el = document.getElementById('sessionTimer');
+    if (el) {
+      el.textContent = m + ':' + s;
+      el.style.color = sessionSeconds <= 300 ? '#c0392b' : '#b8860b';
+    }
+    if (sessionSeconds <= 0) doLogout();
+  }, 1000);
+  var evts = ['click','keydown','keypress','input','touchstart','touchmove','scroll','mousemove','pointerdown','pointermove'];
+  evts.forEach(function(ev) { document.addEventListener(ev, resetTimer, { passive: true }); });
+}
+
+window.resetTimer = function resetTimer() {
+  if (_resetThrottle) return;
+  _resetThrottle = setTimeout(function() { _resetThrottle = null; }, 1000);
+  sessionSeconds = SESSION_TOTAL;
+  var el = document.getElementById('sessionTimer');
+  if (el) el.style.color = '#b8860b';
+};
 
 // ── NAV ───────────────────────────────────────────
 window.switchTab = function switchTab(tab) {
